@@ -2,6 +2,7 @@ from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import ForeignKey
+from sqlalchemy.ext.associationproxy import association_proxy
 
 engine = create_engine('sqlite:///restaurant_reviews.db')
 Session = sessionmaker(bind=engine)
@@ -19,14 +20,25 @@ class Restaurant(Base):
 
     reviews = relationship('Review', back_populates='restaurant')
 
+    customers = association_proxy(
+        'reviews', 'customer', creator=lambda us: Review(customer=us))
+
     def __repr__(self):
-        return f'<Restaurant(name={self.name}, price={self.price})>'
+        return f'Restaurant Name: {self.name} Price: {self.price}'
 
-    def reviews(self):
-        return [f"Review for {self.name} by {review.customer.first_name} {review.customer.last_name}: {review.star_rating} stars." for review in self.reviews]
+    def restaurant_reviews(self):
+        return self.reviews
 
-    def customers(self):
+    def restaurant_customers(self):
         return [review.customer for review in self.reviews]
+
+    @classmethod
+    def fanciest(cls):
+        return session.query(cls).order_by(desc(cls.price)).first()
+
+    def all_reviews(self):
+        print([review.full_review() for review in self.reviews])
+        return [review.full_review() for review in self.reviews]
 
 
 class Customer(Base):
@@ -37,20 +49,41 @@ class Customer(Base):
 
     reviews = relationship('Review', back_populates='customer')
 
+    restaurants = association_proxy(
+        'reviews', 'restaurant', creator=lambda gm: Review(restaurant=gm))
+
     def __repr__(self):
-        return f'<Customer(name={self.first_name} {self.last_name})>'
+        return f'First Name: {self.first_name} Last Name {self.last_name}'
 
-    def reviews(self):
-        return [f"Review for {review.restaurant.name} by {self.first_name} {self.last_name}: {review.star_rating} stars." for review in self.reviews]
+    def customer_reviews(self):
+        return self.reviews
 
-    def restaurants(self):
+    def customer_restaurants(self):
         return [review.restaurant for review in self.reviews]
+
+    def full_name(self):
+        return f'{self.first_name} {self.last_name}'
+
+    def favorite_restaurant(self):
+        return session.query(Restaurant).join(Review).filter(Review.customer_id == self.id).order_by(desc(Review.star_rating)).first()
+
+    def add_reviews(self, restaurant, rating):
+        new_review = Review(
+            customer=self, restaurant=restaurant, star_rating=rating)
+        session.add(new_review)
+        session.commit()
+
+    def delete_reviews(self, restaurant):
+        session.query(Review).filter(Review.customer_id == self.id,
+                                     Review.restaurant_id == restaurant.id).delete()
+        session.commit()
 
 
 class Review(Base):
     __tablename__ = 'reviews'
     id = Column(Integer, primary_key=True)
     star_rating = Column(Integer)
+
     customer_id = Column(Integer, ForeignKey('customers.id'))
     restaurant_id = Column(Integer, ForeignKey('restaurants.id'))
 
@@ -58,4 +91,13 @@ class Review(Base):
     restaurant = relationship('Restaurant', back_populates='reviews')
 
     def __repr__(self):
-        return f'<Review(restaurant={self.restaurant.name}, customer={self.customer.first_name} {self.customer.last_name}, rating={self.star_rating})>'
+        return f'Review: {self.comment} star_rating {self.star_rating}'
+
+    def review_customer(self):
+        return self.customer
+
+    def Review_restaurant(self):
+        return self.restaurant
+
+    def full_review(self):
+        return f'Review for {self.restaurant.name} by {self.customer.full_name()}: {self.star_rating} stars'

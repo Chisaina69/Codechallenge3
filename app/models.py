@@ -83,7 +83,7 @@ class Review(Base):
     __tablename__ = 'reviews'
     id = Column(Integer, primary_key=True)
     star_rating = Column(Integer)
-
+    comment = Column(String)
     customer_id = Column(Integer, ForeignKey('customers.id'))
     restaurant_id = Column(Integer, ForeignKey('restaurants.id'))
 

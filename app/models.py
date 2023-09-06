@@ -14,9 +14,9 @@ Base = declarative_base()
 
 class Restaurant(Base):
     __tablename__ = 'restaurants'
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    price = Column(Integer)
+    id = Column(Integer(), primary_key=True)
+    name = Column(String())
+    price = Column(Integer())
 
     reviews = relationship('Review', back_populates='restaurant')
 
@@ -43,9 +43,9 @@ class Restaurant(Base):
 
 class Customer(Base):
     __tablename__ = 'customers'
-    id = Column(Integer, primary_key=True)
-    first_name = Column(String)
-    last_name = Column(String)
+    id = Column(Integer(), primary_key=True)
+    first_name = Column(String())
+    last_name = Column(String())
 
     reviews = relationship('Review', back_populates='customer')
 
@@ -81,11 +81,11 @@ class Customer(Base):
 
 class Review(Base):
     __tablename__ = 'reviews'
-    id = Column(Integer, primary_key=True)
-    star_rating = Column(Integer)
-    comment = Column(String)
-    customer_id = Column(Integer, ForeignKey('customers.id'))
-    restaurant_id = Column(Integer, ForeignKey('restaurants.id'))
+    id = Column(Integer(), primary_key=True)
+    star_rating = Column(Integer())
+    comment = Column(String())
+    customer_id = Column(Integer(), ForeignKey('customers.id'))
+    restaurant_id = Column(Integer(), ForeignKey('restaurants.id'))
 
     customer = relationship('Customer', back_populates='reviews')
     restaurant = relationship('Restaurant', back_populates='reviews')
